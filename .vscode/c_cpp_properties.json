@@ -1,0 +1,32 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "/usr/include/gtkmm-3.0/**",
+                "/usr/include/gtksourceviewmm-3.0/**",
+                "/usr/lib/gtkmm-3.0/**",
+                "/usr/lib/gtksourceviewmm-3.0/**",
+                "/usr/include/glibmm-2.68/**",
+                "/usr/lib/glibmm-2.68/**",
+                "/usr/include/giomm-2.68/**",
+                "/usr/lib/giomm-2.68/**",
+                "/usr/include/glib-2.0/**",
+                "/usr/lib/glib-2.0/**",
+                "/usr/include/sigc++-3.0/**",
+                "/usr/lib/sigc++-3.0/**",
+                "/usr/include/gdkmm-3.0/**",
+                "/usr/lib/gdkmm-3.0/**",
+                "/usr/lib/pangomm-2.48/**"
+            ],
+            "defines": [],
+            "compilerPath": "/usr/bin/clang",
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "linux-clang-x64",
+            "compileCommands": "${workspaceFolder}/build/compile_commands.json"
+        }
+    ],
+    "version": 4
+}
