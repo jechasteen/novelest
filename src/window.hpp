@@ -4,7 +4,6 @@
 #include <string>
 
 #include "db.hpp"
-#include "util.hpp"
 
 class Novelest : public Gtk::Window {
 public:
@@ -53,6 +52,9 @@ private:
 
     void update_word_count();
 
+    int new_chapter(std::string);
+    void import(std::vector<std::string>);
+
     // Signal Handlers
     void on_new_chapter();
     void on_selection_changed();
@@ -65,4 +67,6 @@ private:
     std::string get_save_filename();
     void on_menu_open();
     void on_menu_new();
+
+    void on_menu_import();
 };

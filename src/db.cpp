@@ -1,5 +1,8 @@
-#include "db.hpp"
 #include <sstream>
+#include <regex>
+
+#include "db.hpp"
+
 
 using Chapters = std::vector<Chapter>;
 
@@ -135,8 +138,6 @@ std::vector<Chapter> Database::get_chapters()
     if (rc != SQLITE_OK) {
         std::cerr << "Error in get_chapters: " << errmsg << std::endl;
         sqlite3_free(errmsg);
-    } else {
-        std::cerr << chapters.size() << " chapters returned." << std::endl;
     }
 
     return chapters;
@@ -158,6 +159,8 @@ double Database::get_target()
 int Database::set_body(int id, std::string body)
 {
     std::stringstream sql;
+    std::regex re("'");
+    body = std::regex_replace(body, re, "''");
     sql << "UPDATE chapters SET body = '" << body << "' WHERE id = " << id << ";";
 
     char* errmsg;

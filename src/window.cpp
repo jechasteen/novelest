@@ -3,8 +3,12 @@
 #include <iostream>
 #include <sstream>
 #include <cmath>
+#include <fstream>
+#include <filesystem>
+#include <algorithm>
 
 #include "window.hpp"
+#include "util.hpp"
 
 Novelest::Novelest(Glib::RefPtr<Gtk::Application> app)
 {
@@ -98,6 +102,7 @@ void Novelest::init_menu()
     m_builder->get_widget("btn_file_menu", btn_file_menu);
     btn_file_menu->set_label("File");
 
+    // File
     Gtk::MenuItem* menu_quit;
     m_builder->get_widget("menu_quit", menu_quit);
     menu_quit->signal_activate().connect(sigc::mem_fun(*this, &Novelest::on_menu_quit));
@@ -113,6 +118,11 @@ void Novelest::init_menu()
     Gtk::MenuItem* menu_new;
     m_builder->get_widget("menu_new", menu_new);
     menu_new->signal_activate().connect(sigc::mem_fun(*this, &Novelest::on_menu_new));
+
+    // Import Export
+    Gtk::MenuItem* menu_import;
+    m_builder->get_widget("menu_import", menu_import);
+    menu_import->signal_activate().connect(sigc::mem_fun(*this, &Novelest::on_menu_import));
 }
 
 void Novelest::update_word_count()
@@ -125,22 +135,42 @@ void Novelest::update_word_count()
     }
     double target = m_db->get_target();
     double percent = round((total / target) * 100);
-    std::cout << percent << std::endl;
     std::stringstream text;
     text << total << " / " << target << " Words (" << percent << "%)";
     m_progress_word_count->set_fraction(total / target);
     m_progress_word_count->set_text(text.str());
 }
 
-void Novelest::on_new_chapter()
+void Novelest::import(std::vector<std::string> paths)
+{
+    std::sort(paths.begin(), paths.end(), [](std::string a, std::string b) { return a < b; });
+    std::string str;
+    for (auto path : paths) {
+        std::ifstream ifs(path);
+        str.assign(std::istreambuf_iterator<char>(ifs),
+            std::istreambuf_iterator<char>());
+        
+        std::string title = std::filesystem::path(path).stem();
+
+        int id = new_chapter(title);
+        m_db->set_body(id, str);
+    }
+}
+
+int Novelest::new_chapter(std::string title)
 {
     auto iter = m_store->append();
     auto row = *iter;
-    std::string title("New Chapter");
     row[m_columns.m_col_title] = title;
     row[m_columns.m_col_include] = true;
-    row[m_columns.m_col_id] = m_db->insert(title);
-    m_treeview->set_cursor(m_store->get_path(iter));
+    int id = m_db->insert(title);
+    row[m_columns.m_col_id] = id;
+    return id;
+}
+
+void Novelest::on_new_chapter()
+{
+    new_chapter("New Chapter");
 }
 
 void Novelest::on_selection_changed()
@@ -229,11 +259,7 @@ void Novelest::on_menu_open()
 
     int result = dlg.run();
 
-    switch (result) {
-    case (Gtk::RESPONSE_CANCEL):
-        std::cout << "Cancelled." << std::endl;
-        break;
-    case (Gtk::RESPONSE_OK):
+    if (Gtk::RESPONSE_OK) {
         std::cout << dlg.get_filename() << std::endl;
         m_db = std::make_unique<Database>(dlg.get_filename());
         std::vector<Chapter> chapters = m_db->get_chapters();
@@ -245,7 +271,6 @@ void Novelest::on_menu_open()
             row[m_columns.m_col_include] = i.include;
             row[m_columns.m_col_id] = i.id;
         }
-        break;
     }
     dlg.close();
     update_word_count();
@@ -268,12 +293,7 @@ void Novelest::on_menu_new()
 
     int response = dlg->run();
 
-    switch (response) {
-    case (Gtk::RESPONSE_CANCEL):
-        std::cout << "Cancelled." << std::endl;
-        dlg->close();
-        break;
-    case (Gtk::RESPONSE_OK):
+    if (Gtk::RESPONSE_OK) {
         std::string filename = get_save_filename();
         auto title = entry_title->get_text();
         auto author = entry_author->get_text();
@@ -285,7 +305,31 @@ void Novelest::on_menu_new()
         m_btn_new_chapter->set_sensitive(true);
         m_editor->set_sensitive(true);
         dlg->close();
-        break;
     }
     update_word_count();
+}
+
+void Novelest::on_menu_import()
+{
+    Gtk::FileChooserDialog dlg("Select markdown file(s)", Gtk::FILE_CHOOSER_ACTION_OPEN);
+    dlg.set_select_multiple(true);
+    dlg.add_choice("add", "Add to current project");
+    dlg.set_transient_for(*this);
+    dlg.add_button("Cancel", Gtk::RESPONSE_CANCEL);
+    dlg.add_button("Open", Gtk::RESPONSE_OK);
+
+    auto filter = Gtk::FileFilter::create();
+    filter->set_name("Markdown Files");
+    filter->add_pattern("*.md");
+    filter->add_pattern("*.markdown");
+    dlg.add_filter(filter);
+
+    int result = dlg.run();
+    
+    if (result == Gtk::RESPONSE_OK) {
+        if (!m_db)
+            m_db = std::make_unique<Database>(get_save_filename());
+        import(dlg.get_filenames());
+    }
+    dlg.close();
 }
