@@ -35,6 +35,7 @@ public:
 
     std::string get_body(int);
     std::vector<Chapter> get_chapters();
+    double get_target();
 
     int set_body(int, std::string);
     int set_include(int, bool);
@@ -46,4 +47,5 @@ private:
     static int exec_cb(void*, int, char**, char**);
     static int all_chapters_cb(void*, int, char**, char**);
     static int body_cb(void*, int, char**, char**);
+    static int target_cb(void*, int, char**, char**);
 };

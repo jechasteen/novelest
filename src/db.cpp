@@ -21,8 +21,6 @@ Database::Database(std::string filename, std::string title, std::string author, 
     if (rc != SQLITE_OK) {
         std::cerr << "Error in Database explicit constructor: " << errmsg << std::endl;
         sqlite3_free(errmsg);
-    } else {
-        std::cerr << "Successfully inserted metadata into database." << std::endl;
     }
 }
 
@@ -79,9 +77,6 @@ int Database::update_metadata(std::string title, std::string author, double targ
         std::cerr << "Error in update_metadata: " << errmsg << std::endl;
         sqlite3_free(errmsg);
         return 1;
-    } else {
-        std::cerr << "Updated metadata." << std::endl;
-        return 0;
     }
 }
 
@@ -94,8 +89,6 @@ int Database::update_title(std::string title)
     if (rc != SQLITE_OK) {
         std::cerr << "Error in update_title: " << errmsg << std::endl;
         sqlite3_free(errmsg);
-    } else {
-        std::cerr << "Updated title to '" << title << "'" << std::endl;
     }
 }
 
@@ -129,8 +122,6 @@ std::string Database::get_body(int id)
     if (rc != SQLITE_OK) {
         std::cerr << "Error in get_body: " << errmsg << std::endl;
         sqlite3_free(errmsg);
-    } else {
-        std::cerr << "Got body for #" << id << std::endl;
     }
 
     return response;
@@ -151,6 +142,19 @@ std::vector<Chapter> Database::get_chapters()
     return chapters;
 }
 
+double Database::get_target()
+{
+    double target;
+    char *errmsg;
+    int rc = sqlite3_exec(db, "SELECT target FROM metadata", target_cb, &target, &errmsg);
+    if (rc != SQLITE_OK) {
+        std::cerr << "Error in get_target: " << errmsg << std::endl;
+        sqlite3_free(errmsg);
+    }
+
+    return target;
+}
+
 int Database::set_body(int id, std::string body)
 {
     std::stringstream sql;
@@ -162,9 +166,6 @@ int Database::set_body(int id, std::string body)
         std::cerr << "Error in set_body: " << errmsg << std::endl;
         sqlite3_free(errmsg);
         return 1;
-    } else {
-        std::cout << "Updated chapter (id=" << id << ")" << std::endl;
-        return 0;
     }
 }
 
@@ -180,9 +181,6 @@ int Database::set_include(int id, bool include)
         std::cerr << "Error in set_include: " << errmsg << std::endl;
         sqlite3_free(errmsg);
         return 1;
-    } else {
-        std::cerr << "Updated include (id=" << id << ")" << std::endl;
-        return 0;
     }
 }
 
@@ -197,9 +195,6 @@ int Database::set_title(int id, std::string title)
         std::cerr << "Error in set_title: " << errmsg << std::endl;
         sqlite3_free(errmsg);
         return 1;
-    } else {
-        std::cerr << "Updated title (id=" << id << ")" << std::endl;
-        return 0;
     }
 }
 
@@ -247,6 +242,20 @@ int Database::body_cb(void* data, int argc, char** argv, char** col_name)
             return 1;
         if (argv[0])
             *str = std::string(argv[0]);
+    } catch (...) {
+        return 1;
+    }
+    return 0;
+}
+
+int Database::target_cb(void *data, int argc, char **argv, char **col_name)
+{
+    double *target = static_cast<double*>(data);
+    try {
+        if (argc != 1)
+            return 1;
+        if (argv[0])
+            *target = atof(argv[0]);
     } catch (...) {
         return 1;
     }

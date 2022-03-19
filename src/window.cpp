@@ -2,6 +2,7 @@
 #include <gtksourceviewmm/languagemanager.h>
 #include <iostream>
 #include <sstream>
+#include <cmath>
 
 #include "window.hpp"
 
@@ -74,6 +75,9 @@ void Novelest::init_workspace()
     m_builder->get_widget("editor", m_editor);
     m_editor->get_source_buffer()->set_language(manager->get_language("markdown"));
     m_editor->set_sensitive(false);
+
+    m_builder->get_widget("progress_word_count", m_progress_word_count);
+    m_progress_word_count->set_text("");
 }
 
 void Novelest::init_handlers()
@@ -90,9 +94,9 @@ void Novelest::init_handlers()
 
 void Novelest::init_menu()
 {
-    Gtk::MenuButton* btn_menu;
-    m_builder->get_widget("btn_menu", btn_menu);
-    btn_menu->set_label("Menu");
+    Gtk::MenuButton* btn_file_menu;
+    m_builder->get_widget("btn_file_menu", btn_file_menu);
+    btn_file_menu->set_label("File");
 
     Gtk::MenuItem* menu_quit;
     m_builder->get_widget("menu_quit", menu_quit);
@@ -109,6 +113,23 @@ void Novelest::init_menu()
     Gtk::MenuItem* menu_new;
     m_builder->get_widget("menu_new", menu_new);
     menu_new->signal_activate().connect(sigc::mem_fun(*this, &Novelest::on_menu_new));
+}
+
+void Novelest::update_word_count()
+{
+    auto chapters = m_db->get_chapters();
+    double total = 0;
+    for (auto c : chapters) {
+        if (c.include)
+            total += word_count(c.body);
+    }
+    double target = m_db->get_target();
+    double percent = round((total / target) * 100);
+    std::cout << percent << std::endl;
+    std::stringstream text;
+    text << total << " / " << target << " Words (" << percent << "%)";
+    m_progress_word_count->set_fraction(total / target);
+    m_progress_word_count->set_text(text.str());
 }
 
 void Novelest::on_new_chapter()
@@ -138,6 +159,8 @@ void Novelest::on_selection_changed()
         std::cout << e << std::endl;
     }
     m_current_iter = m_selection->get_selected();
+
+    update_word_count();
 }
 
 void Novelest::on_include_toggled(Glib::ustring path)
@@ -146,6 +169,7 @@ void Novelest::on_include_toggled(Glib::ustring path)
     auto row = *iter;
     int id = row[m_columns.m_col_id];
     m_db->set_include(id, row[m_columns.m_col_include]);
+    update_word_count();
 }
 
 void Novelest::on_chapter_title_edited(Glib::ustring path, Glib::ustring text)
@@ -224,6 +248,7 @@ void Novelest::on_menu_open()
         break;
     }
     dlg.close();
+    update_word_count();
 }
 
 void Novelest::on_menu_new()
@@ -262,4 +287,5 @@ void Novelest::on_menu_new()
         dlg->close();
         break;
     }
+    update_word_count();
 }
